@@ -1,11 +1,11 @@
 javascript: (function() {
     'use strict';
     const HCK_ID = 'hck-prova-paulista-v2';
-    if (document.getElementById(HCK_ID)) { console.warn("HCK: JÃ¡ em execuÃ§Ã£o."); return; }
+    if (document.getElementById(HCK_ID)) { console.warn("HCK: Já em execução."); return; }
 
     const isMobile = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     if (isMobile()) {
-        alert("HCK - PROVA PAULISTA V2\n\nEste script nÃ£o tem suporte para dispositivos mÃ³veis.");
+        alert("HCK - PROVA PAULISTA V2\n\nEste script não tem suporte para dispositivos móveis.");
         return;
     }
     
@@ -13,10 +13,10 @@ javascript: (function() {
     const CONFIG = {
         API_ENDPOINT: 'https://blackbox-alpha.vercel.app/api/chat',
         MODELS: [
-            { id: "gemini-1.5-flash", name: "Gemini 1.5 (Geral/VisÃ£o)" },
+            { id: "gemini-1.5-flash", name: "Gemini 1.5 (Geral/Visão)" },
             { id: "meta-llama/Llama-3.3-70B-Instruct-Turbo", name: "Llama 3.3 (Humanas)" },
             { id: "deepseek-reasoner", name: "DeepSeek-R1 (Exatas)" },
-            { id: "deepseek-chat", name: "DeepSeek-V3 (RÃ¡pido)" }
+            { id: "deepseek-chat", name: "DeepSeek-V3 (Rápido)" }
         ],
         API_TIMEOUT: 30000,
         NOTIFICATION_TIMEOUT: 4000
@@ -65,12 +65,12 @@ javascript: (function() {
             items.forEach((item) => {
                 if (alternatives.length >= 5) return;
                 const letter = String.fromCharCode(65 + alternatives.length);
-                let content = sanitize(getContent(item)).replace(/^[A-Ea-e][\)\.]\s*/, '').trim();
+                let content = sanitize(getContent(item)).replace(/^[A-Ea-e][\)\.\s]*/, '').trim();
                 if (content) alternatives.push(`${letter}) ${content}`);
             });
         }
-        if (statement.length < 5 && alternatives.every(a => a.length < 10)) return "Falha na extraÃ§Ã£o: conteÃºdo insuficiente.";
-        return `--- Enunciado ---\n${statement || "(Vazio)"}\n\n--- Alternativas ---\n${alternatives.join('\n') || "(Nenhuma)"}`.replace(/\n{3,}/g, '\n\n');
+        if (statement.length < 5 && alternatives.every(a => a.length < 10)) return "Falha na extração: conteúdo insuficiente.";
+        return `--- Enunciado ---\n${statement || "(Vazio)"}\n\n--- Alternativas ---\n${alternatives.join('\n') || "(Nenhuma)"}`;
     }
 
     async function queryApi(text, modelId) {
@@ -79,7 +79,7 @@ javascript: (function() {
         const data = await res.json();
         if (!res.ok) throw new Error(data?.message || `Erro HTTP ${res.status}`);
         if (data.response) return data;
-        throw new Error("API retornou resposta invÃ¡lida.");
+        throw new Error("API retornou resposta inválida.");
     }
 
     const formatResponse = (ans) => typeof ans === 'string' ? (ans.trim().match(/\b([A-E])\b/i)?.[1] || ans.trim().match(/^[A-E]$/i)?.[0])?.toUpperCase() : null;
@@ -112,14 +112,14 @@ javascript: (function() {
             if (question.startsWith("Falha")) throw new Error(question);
             const result = await withTimeout(queryApi(question, currentModel.id), CONFIG.API_TIMEOUT);
             const answer = formatResponse(result.response);
-            const icon = result.source === 'database_cache' ? 'ðŸ’¾' : 'âš¡ï¸';
+            const icon = result.source === 'database_cache' ? '💾' : '⚡️';
             const modelName = result.model ? result.model.split('/').pop().replace(/-latest$/, '') : 'IA';
             const detail = result.source === 'database_cache' ? `Do cache (por ${result.details?.modelOrigin?.split('/').pop() || modelName})` : `Respondido por ${modelName}`;
             if (answer) {
                 STATE.lastAnswer = answer;
                 STATE.ui.notify({ id: 'processing_status', text: `${icon} Resposta: ${answer}`, detail: detail, type: 'success' });
             } else {
-                throw new Error("Formato de resposta invÃ¡lido.");
+                throw new Error("Formato de resposta inválido.");
             }
         } catch (error) {
             log('ERROR', "Falha no ciclo:", error);
@@ -136,7 +136,7 @@ javascript: (function() {
     function setupUI() {
         const C = { font: "'JetBrains Mono', monospace", bg: 'rgba(16, 16, 24, 0.9)', text: '#E2E2FF', text2: '#8890B3', grad: 'linear-gradient(90deg, #C77DFF, #00D0FF)', pulse: '#F50057', border: '#333344', shadow: '0 8px 30px rgba(0,0,0,0.5)' };
         const style = document.createElement("style");
-        style.textContent = `@keyframes hck-pulse-anim{to{box-shadow:0 0 0 12px transparent;}} .${PULSE_CLASS}{border-radius:50%; animation: hck-pulse-anim 1.2s infinite; box-shadow: 0 0 0 0 ${C.pulse};} @keyframes hck-fade-in{from{opacity:0;transform:scale(0.95) translateY(10px);}to{opacity:1;transform:scale(1) translateY(0);}} @keyframes hck-progress-bar{from{width:100%;}to{width:0%;}}`;
+        style.textContent = `@keyframes hck-pulse-anim{to{box-shadow:0 0 0 12px transparent;}} .${PULSE_CLASS}{border-radius:50%; animation: hck-pulse-anim 1.2s infinite; box-shadow: 0 0 0 0 ${C.pulse};} @keyframes hck-fade-in{from{opacity:0;transform:scale(0.95) translateY(10px);}to{opacity:1;transform:scale(1) translateY(0);}} @keyframes hck-progress-bar{from{width:100%;}to{width:0%;}}`;        
         document.head.appendChild(style);
         
         const container = document.createElement('div'); container.id = HCK_ID;
@@ -156,7 +156,7 @@ javascript: (function() {
         shortcuts.innerHTML = `<div style="display:grid; grid-template-columns:auto 1fr; gap:5px 12px; font-size:11px; color:${C.text2}; margin-top:8px; padding-top:8px; border-top: 1px solid ${C.border};"><b style="color:${C.text};">[1]</b>Menu <b style="color:${C.text};">[2]</b>Executar <b style="color:${C.text};">[3]</b>Marcar <b style="color:${C.text};">[4]</b>Mudar Modelo <b style="color:${C.text};">[5]</b>Sair</div>`;
         
         const credits = document.createElement('div');
-        credits.innerHTML = `by <b style="background:${C.grad};-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Hackermoon1</b> & <b style="background:${C.grad};-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Dontbrazz</b>`;
+        credits.innerHTML = `by <b style="background:${C.grad};-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Santos</b>`;
         credits.style.cssText = `font-size:10px; color:${C.text2}; opacity:0.7; text-align:center; padding-top:8px; margin-top:5px; border-top: 1px solid ${C.border};`;
         
         menu.append(titleBar, modelDisplay, shortcuts, credits);
