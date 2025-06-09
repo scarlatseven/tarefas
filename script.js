@@ -90,7 +90,7 @@ javascript: (function() {
                 if (alternativasTextos.length >= 5) return;
                 const letter = String.fromCharCode(65 + alternativasTextos.length);
                 let content = getCleanContentFromNode(item).trim();
-                content = content.replace(/^[A-Ea-e][\)\.])\s*/, '').trim();
+                content = content.replace(/^[A-Ea-e][\)\.]\s*/, '').trim();
                 if (content) { alternativasTextos.push(`${letter}) ${sanitizeText(content)}`); }
             });
         }
@@ -105,18 +105,42 @@ javascript: (function() {
     }
     
     async function queryVercelApi(queryText) {
-        const payload = { messages: [{ role: "user", content: queryText }] };
-        const res = await fetch(CONFIG.MY_VERCEL_API_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.message || `HTTP ${res.status}`);
-        if (data.response) return data;
-        throw new Error("Resposta da API inválida.");
+        try {
+            const payload = { messages: [{ role: "user", content: queryText }] };
+            const res = await fetch(CONFIG.MY_VERCEL_API_ENDPOINT, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(payload) 
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.message || `HTTP ${res.status}`);
+            if (data.response) return data;
+            throw new Error("Resposta da API inválida.");
+        } catch (error) {
+            console.error("Erro na API:", error);
+            throw error;
+        }
     }
     
-    function formatResponse(answer) { if(typeof answer!=='string')return null; const txt=answer.trim(); if(/^[A-E]$/i.test(txt))return txt.toUpperCase(); const match=txt.match(/\b([A-E])\b/i); return match?match[1].toUpperCase():null; }
+    function formatResponse(answer) { 
+        if(typeof answer !== 'string') return null; 
+        const txt = answer.trim(); 
+        if(/^[A-E]$/i.test(txt)) return txt.toUpperCase(); 
+        const match = txt.match(/\b([A-E])\b/i); 
+        return match ? match[1].toUpperCase() : null; 
+    }
 
     const PULSE_CLASS = 'hck-radio-pulse-visual';
-    function applyPulseToAlternative(letter) { document.querySelectorAll('.'+PULSE_CLASS).forEach(el=>el.classList.remove(PULSE_CLASS)); if(!letter || !/^[A-E]$/i.test(letter)) return; const index = letter.toUpperCase().charCodeAt(0) - 65; const alts = document.querySelectorAll('div[role="radiogroup"] > label, div[role="radiogroup"] > div, ul[class*="option"] > li, ol[class*="choice"] > li'); if(alts[index]){ const target=alts[index].querySelector('.MuiRadio-root, input[type=radio]') || alts[index]; target.classList.add(PULSE_CLASS); } }
+    function applyPulseToAlternative(letter) { 
+        document.querySelectorAll('.' + PULSE_CLASS).forEach(el => el.classList.remove(PULSE_CLASS)); 
+        if(!letter || !/^[A-E]$/i.test(letter)) return; 
+        const index = letter.toUpperCase().charCodeAt(0) - 65; 
+        const alts = document.querySelectorAll('div[role="radiogroup"] > label, div[role="radiogroup"] > div, ul[class*="option"] > li, ol[class*="choice"] > li'); 
+        if(alts[index]){ 
+            const target = alts[index].querySelector('.MuiRadio-root, input[type=radio]') || alts[index]; 
+            target.classList.add(PULSE_CLASS); 
+        } 
+    }
     
     async function doFullCycle() {
         if (!STATE.instagramVerified) {
@@ -181,9 +205,36 @@ javascript: (function() {
         } 
     }
     
-    function killSwitch() { document.removeEventListener('keydown', handleShortcuts, true); document.getElementById(HCK_BOOKMARKLET_ID)?.remove(); document.getElementById('hck-pulse-styles')?.remove(); document.getElementById('hck-notifications-container')?.remove(); document.getElementById('hck-instagram-verification')?.remove(); }
+    function killSwitch() { 
+        document.removeEventListener('keydown', handleShortcuts, true); 
+        document.getElementById(HCK_BOOKMARKLET_ID)?.remove(); 
+        document.getElementById('hck-pulse-styles')?.remove(); 
+        document.getElementById('hck-notifications-container')?.remove(); 
+        document.getElementById('hck-instagram-verification')?.remove(); 
+    }
     
-    function handleShortcuts(event) { if(event.target.isContentEditable || ['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName)) return; if(event.repeat) return; switch(event.key){ case '1': event.preventDefault(); STATE.ui.helpers.toggleMenu(); break; case '2': event.preventDefault(); doFullCycle(); break; case '3': event.preventDefault(); showLastAnswer(); break; case '5': event.preventDefault(); killSwitch(); break; } }
+    function handleShortcuts(event) { 
+        if(event.target.isContentEditable || ['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName)) return; 
+        if(event.repeat) return; 
+        switch(event.key){ 
+            case '1': 
+                event.preventDefault(); 
+                STATE.ui.helpers.toggleMenu(); 
+                break; 
+            case '2': 
+                event.preventDefault(); 
+                doFullCycle(); 
+                break; 
+            case '3': 
+                event.preventDefault(); 
+                showLastAnswer(); 
+                break; 
+            case '5': 
+                event.preventDefault(); 
+                killSwitch(); 
+                break; 
+        } 
+    }
 
     // Função para mostrar a tela de verificação do Instagram
     function showInstagramVerification() {
@@ -307,28 +358,123 @@ javascript: (function() {
         const C = { font: "'Fira Code', 'Source Code Pro', monospace", bg: '#1A1A1A', bg2: '#252525', text: '#E0E0E0', text2: '#888888', accent: '#00FF41', success: '#00FF41', error: '#FF4181', warn: '#FFDB41', pulse: '#F50057', border: '#333333', notifBg: 'rgba(26, 26, 26, 0.8)', glow: '0 0 8px #00FF4144' };
         const blinkAnimation = `@keyframes blink { 50% { opacity: 0; } }`;
         const pulseAnimation = `@keyframes hck-pulse-strong-visual{0%{box-shadow:0 0 0 0 ${C.pulse}b3}70%{box-shadow:0 0 0 16px ${C.pulse}00}100%{box-shadow:0 0 0 0 ${C.pulse}00}}`;
-        const styleSheet = document.createElement("style"); styleSheet.id = 'hck-pulse-styles'; styleSheet.innerText = `${blinkAnimation} ${pulseAnimation} .${PULSE_CLASS}{border-radius:50%!important; animation:hck-pulse-strong-visual 1.5s infinite cubic-bezier(.66,0,0,1); z-index:9999;}`; document.head.appendChild(styleSheet);
-        const mainContainer = document.createElement('div'); mainContainer.id = HCK_BOOKMARKLET_ID; mainContainer.style.cssText = `position:fixed; bottom:12px; right:12px; z-index:2147483646; font-family:${C.font};`;
-        const menuPanel = document.createElement('div'); menuPanel.style.cssText = `background:${C.bg}; width:260px; padding:10px; border-radius:8px; box-shadow:${C.glow}; display:none; flex-direction:column; gap:8px; border:1px solid ${C.border}; transition: opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1), transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); opacity:0; transform: translateY(10px) scale(0.95); pointer-events: none;`;
-        const titleBar = document.createElement('div'); titleBar.style.cssText = `display:flex; justify-content:space-between; align-items:center; padding-bottom:6px; margin-bottom: 4px; border-bottom:1px solid ${C.border};`;
-        const title = document.createElement('div'); title.innerHTML = `HCK.sh <span style="animation:blink 1s step-end infinite; color:${C.accent};">_</span>`;
+        
+        // Adicionar estilos
+        const styleSheet = document.createElement("style"); 
+        styleSheet.id = 'hck-pulse-styles'; 
+        styleSheet.innerText = `${blinkAnimation} ${pulseAnimation} .${PULSE_CLASS}{border-radius:50%!important; animation:hck-pulse-strong-visual 1.5s infinite cubic-bezier(.66,0,0,1); z-index:9999;}`; 
+        document.head.appendChild(styleSheet);
+        
+        // Criar container principal
+        const mainContainer = document.createElement('div'); 
+        mainContainer.id = HCK_BOOKMARKLET_ID; 
+        mainContainer.style.cssText = `position:fixed; bottom:12px; right:12px; z-index:2147483646; font-family:${C.font};`;
+        
+        // Criar painel do menu
+        const menuPanel = document.createElement('div'); 
+        menuPanel.style.cssText = `background:${C.bg}; width:260px; padding:10px; border-radius:8px; box-shadow:${C.glow}; display:none; flex-direction:column; gap:8px; border:1px solid ${C.border}; transition: opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1), transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); opacity:0; transform: translateY(10px) scale(0.95); pointer-events: none;`;
+        
+        // Criar barra de título
+        const titleBar = document.createElement('div'); 
+        titleBar.style.cssText = `display:flex; justify-content:space-between; align-items:center; padding-bottom:6px; margin-bottom: 4px; border-bottom:1px solid ${C.border};`;
+        
+        const title = document.createElement('div'); 
+        title.innerHTML = `HCK.sh <span style="animation:blink 1s step-end infinite; color:${C.accent};">_</span>`;
         title.style.cssText = `font-weight:600; font-size:16px; color:${C.accent}; text-shadow: ${C.glow};`;
-        const closeBtn = document.createElement('div'); closeBtn.textContent = '[X]'; closeBtn.style.cssText = `color:${C.text2}; font-size:14px; cursor:pointer;`;
+        
+        const closeBtn = document.createElement('div'); 
+        closeBtn.textContent = '[X]'; 
+        closeBtn.style.cssText = `color:${C.text2}; font-size:14px; cursor:pointer;`;
+        
         titleBar.append(title, closeBtn);
-        const inputArea = document.createElement('textarea'); inputArea.placeholder = 'Extracted content will appear here...'; inputArea.rows = 6; inputArea.readOnly = true; inputArea.style.cssText = `width:100%; box-sizing:border-box; resize:vertical; background:${C.bg2}; color:${C.text2}; border:1px solid ${C.border}; border-radius:4px; padding:8px; font-size:11px; font-family:inherit;`;
-        const shortcutsHelp = document.createElement('div'); shortcutsHelp.innerHTML = `<div style="display:grid; grid-template-columns:auto 1fr; gap:4px 10px; font-size:12px; color:${C.text2};"><b style="color:${C.accent};">1:</b><span>Toggle Menu</span><b style="color:${C.accent};">2:</b><span>Execute</span><b style="color:${C.accent};">3:</b><span>Show Answer</span><b style="color:${C.accent};">5:</b><span>Kill Process</span></div>`;
+        
+        // Criar área de entrada
+        const inputArea = document.createElement('textarea'); 
+        inputArea.placeholder = 'Extracted content will appear here...'; 
+        inputArea.rows = 6; 
+        inputArea.readOnly = true; 
+        inputArea.style.cssText = `width:100%; box-sizing:border-box; resize:vertical; background:${C.bg2}; color:${C.text2}; border:1px solid ${C.border}; border-radius:4px; padding:8px; font-size:11px; font-family:inherit;`;
+        
+        // Criar ajuda de atalhos
+        const shortcutsHelp = document.createElement('div'); 
+        shortcutsHelp.innerHTML = `<div style="display:grid; grid-template-columns:auto 1fr; gap:4px 10px; font-size:12px; color:${C.text2};"><b style="color:${C.accent};">1:</b><span>Toggle Menu</span><b style="color:${C.accent};">2:</b><span>Execute</span><b style="color:${C.accent};">3:</b><span>Show Answer</span><b style="color:${C.accent};">5:</b><span>Kill Process</span></div>`;
         
         // Adicionar créditos ao desenvolvedor
         const creditsDiv = document.createElement('div');
         creditsDiv.style.cssText = `color:${C.text2}; font-size:11px; text-align:center; margin-top:5px; border-top:1px solid ${C.border}; padding-top:5px;`;
         creditsDiv.innerHTML = `Desenvolvido por: <span style="color:${C.accent};">${DEVELOPER}</span>`;
         
-        menuPanel.append(titleBar, inputArea, shortcutsHelp, creditsDiv); mainContainer.appendChild(menuPanel); document.body.appendChild(mainContainer);
-        const notificationContainer = document.createElement('div'); notificationContainer.id = 'hck-notifications-container'; notificationContainer.style.cssText = `position:fixed; top:20px; right:20px; z-index:2147483647; display:flex; flex-direction:column; align-items:flex-end; gap:10px;`; document.body.appendChild(notificationContainer);
-        const toggleMenu = (forceShow) => { const isHidden = menuPanel.style.opacity === '0'; const show = forceShow === undefined ? isHidden : forceShow; if (show) { menuPanel.style.display = 'flex'; requestAnimationFrame(() => { menuPanel.style.opacity = '1'; menuPanel.style.transform = 'translateY(0) scale(1)'; menuPanel.style.pointerEvents = 'auto'; }); } else { menuPanel.style.opacity = '0'; menuPanel.style.transform = 'translateY(10px) scale(0.95)'; menuPanel.style.pointerEvents = 'none'; setTimeout(() => { if(menuPanel.style.opacity === '0') menuPanel.style.display = 'none'; }, 300); } };
+        // Montar o painel do menu
+        menuPanel.append(titleBar, inputArea, shortcutsHelp, creditsDiv); 
+        mainContainer.appendChild(menuPanel); 
+        document.body.appendChild(mainContainer);
+        
+        // Criar container de notificações
+        const notificationContainer = document.createElement('div'); 
+        notificationContainer.id = 'hck-notifications-container'; 
+        notificationContainer.style.cssText = `position:fixed; top:20px; right:20px; z-index:2147483647; display:flex; flex-direction:column; align-items:flex-end; gap:10px;`; 
+        document.body.appendChild(notificationContainer);
+        
+        // Função para alternar o menu
+        const toggleMenu = (forceShow) => { 
+            const isHidden = menuPanel.style.opacity === '0'; 
+            const show = forceShow === undefined ? isHidden : forceShow; 
+            if (show) { 
+                menuPanel.style.display = 'flex'; 
+                requestAnimationFrame(() => { 
+                    menuPanel.style.opacity = '1'; 
+                    menuPanel.style.transform = 'translateY(0) scale(1)'; 
+                    menuPanel.style.pointerEvents = 'auto'; 
+                }); 
+            } else { 
+                menuPanel.style.opacity = '0'; 
+                menuPanel.style.transform = 'translateY(10px) scale(0.95)'; 
+                menuPanel.style.pointerEvents = 'none'; 
+                setTimeout(() => { 
+                    if(menuPanel.style.opacity === '0') menuPanel.style.display = 'none'; 
+                }, 300); 
+            } 
+        };
+        
+        // Configurar o botão de fechar
         closeBtn.onclick = () => toggleMenu(false);
-        const showResponse = (res, duration) => { const { answer="Info", detail="", type='info' } = res || {}; let color = C.accent; if (type==='success'){ color=C.success; } else if (type==='error'){ color=C.error; } else if (type==='warn'){ color=C.warn; } const notif = document.createElement('div'); notif.style.cssText = `background-color:${C.notifBg}; backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); color:${C.text}; padding: 8px 12px; border-radius:6px; box-shadow:${C.glow}; display:flex; align-items:center; gap:10px; max-width:300px; opacity:0; transform:translateX(20px) scale(0.95); transition:all .3s cubic-bezier(0.25, 1, 0.5, 1); border:1px solid ${C.border}; border-left: 3px solid ${color}; cursor:pointer; font-size: 13px;`; notif.innerHTML = `<div><strong style="color:${color};">${answer}</strong> ${detail ? `<span style="font-size:0.9em; color:${C.text2}; display:block;">${detail.replace(/</g, "<")}</span>` : ''}</div>`; let hideTimeout; const hideNotif = () => { clearTimeout(hideTimeout); notif.style.opacity='0'; notif.style.transform='translateX(20px) scale(0.95)'; setTimeout(() => notif.remove(), 300); }; notif.onclick = hideNotif; notificationContainer.appendChild(notif); requestAnimationFrame(() => { notif.style.opacity='1'; notif.style.transform='translateX(0) scale(1)'; }); const timeoutDuration = duration || (type === 'error' || type === 'warn' ? CONFIG.NOTIFICATION_TIMEOUT_LONG : CONFIG.NOTIFICATION_TIMEOUT_SHORT); hideTimeout = setTimeout(hideNotif, timeoutDuration); };
-        return { elements: { input: inputArea }, helpers: { toggleMenu, showResponse } };
+        
+        // Função para mostrar resposta
+        const showResponse = (res, duration) => { 
+            const { answer="Info", detail="", type='info' } = res || {}; 
+            let color = C.accent; 
+            if (type==='success'){ color=C.success; } 
+            else if (type==='error'){ color=C.error; } 
+            else if (type==='warn'){ color=C.warn; } 
+            
+            const notif = document.createElement('div'); 
+            notif.style.cssText = `background-color:${C.notifBg}; backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); color:${C.text}; padding: 8px 12px; border-radius:6px; box-shadow:${C.glow}; display:flex; align-items:center; gap:10px; max-width:300px; opacity:0; transform:translateX(20px) scale(0.95); transition:all .3s cubic-bezier(0.25, 1, 0.5, 1); border:1px solid ${C.border}; border-left: 3px solid ${color}; cursor:pointer; font-size: 13px;`; 
+            notif.innerHTML = `<div><strong style="color:${color};">${answer}</strong> ${detail ? `<span style="font-size:0.9em; color:${C.text2}; display:block;">${detail.replace(/</g, "<")}</span>` : ''}</div>`; 
+            
+            let hideTimeout; 
+            const hideNotif = () => { 
+                clearTimeout(hideTimeout); 
+                notif.style.opacity='0'; 
+                notif.style.transform='translateX(20px) scale(0.95)'; 
+                setTimeout(() => notif.remove(), 300); 
+            }; 
+            
+            notif.onclick = hideNotif; 
+            notificationContainer.appendChild(notif); 
+            
+            requestAnimationFrame(() => { 
+                notif.style.opacity='1'; 
+                notif.style.transform='translateX(0) scale(1)'; 
+            }); 
+            
+            const timeoutDuration = duration || (type === 'error' || type === 'warn' ? CONFIG.NOTIFICATION_TIMEOUT_LONG : CONFIG.NOTIFICATION_TIMEOUT_SHORT); 
+            hideTimeout = setTimeout(hideNotif, timeoutDuration); 
+        };
+        
+        return { 
+            elements: { input: inputArea }, 
+            helpers: { toggleMenu, showResponse } 
+        };
     }
 
     function init() {
