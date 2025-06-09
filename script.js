@@ -1,4 +1,3 @@
-
 javascript: (function() {
     'use strict';
     const HCK_BOOKMARKLET_ID = 'hck-ui-bookmarklet-shortcuts';
