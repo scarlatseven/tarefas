@@ -1,408 +1,350 @@
-// Script desenvolvido por inacallep ( Fandangos )
-// Eu apenas roubei ( ÓBVIO ), modifiquei, aprimorei
-// e também deixei mais bonito KKKK
 
-const script = document.createElement('script');
-script.src = 'https://cdn.jsdelivr.net/gh/DarkModde/Dark-Scripts/ProtectionScript.js';
-document.head.appendChild(script);
-
-(async () => {
-    console.clear();
-    const noop = () => {};
-    console.warn = console.error = window.debug = noop;
+javascript: (function() {
+    'use strict';
+    const HCK_BOOKMARKLET_ID = 'hck-ui-bookmarklet-shortcuts';
+    if (document.getElementById(HCK_BOOKMARKLET_ID)) { console.warn("HCK Shortcuts: Já em execução."); return; }
     
-    class NotificationSystem {
-        constructor() {
-            this.initStyles();
-            this.notificationContainer = this.createContainer();
-            document.body.appendChild(this.notificationContainer);
+    const SCRIPT_VERSION = '15.1.0-cascade-client';
+    const DEVELOPER = 'Cicatriz'; // Nome do desenvolvedor
+    const INSTAGRAM_USERNAME = 'cicatriz'; // Substitua pelo seu nome de usuário real do Instagram
+    
+    const CONFIG = {
+        MY_VERCEL_API_ENDPOINT: 'https://blackbox-alpha.vercel.app/api/chat',
+        API_TIMEOUT: 30000,
+        NOTIFICATION_TIMEOUT_SHORT: 3500,
+        NOTIFICATION_TIMEOUT_LONG: 7000,
+        IMAGE_FILTERS: {
+            blocked: [/_logo\./i,/\.svg$/i,/icon/i,/button/i,/banner/i,/avatar/i,/profile/i,/thumb/i,/sprite/i,/captcha/i,/loading/i,/spinner/i,/placeholder/i,/background/i,/pattern/i,/texture/i,/favicon/i,/asset/i,/static/i,/decorator/i,/spacer/i,/dummy/i,/transparent/i,/white\.png/i,/black\.png/i,/grey\.png/i,/gray\.png/i,/1x1/i,/blank\.gif/i,/clear\.gif/i,/shim\.gif/i,/ad\./i,/advert/i,/tracking/i,/pixel/i,/beacon/i,/edusp-static\.ip\.tv\/(?:tms|sala-do-futuro)\//i,/s3\.sa-east-1\.amazonaws\.com\/edusp-static\.ip\.tv\/room\/cards\//i,/conteudo_logo\.png$/i,/logo_sala_do_futuro\.png$/i],
+            verify(src) { if (!src || typeof src !== 'string' || (!src.startsWith('http') && !src.startsWith('data:image'))) return false; if (this.blocked.some(r => r.test(src))) { return false; } return true; }
         }
-
-        initStyles() {
-            const styleId = 'custom-notification-styles';
-            if (document.getElementById(styleId)) return;
-
-            const css = `
-                .notification-container {
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    z-index: 9999;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: flex-end;
-                    pointer-events: none;
-                }
-                .notification {
-                    background: rgba(20, 20, 20, 0.9);
-                    color: #f0f0f0;
-                    margin-bottom: 10px;
-                    padding: 12px 18px;
-                    border-radius: 8px;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                    backdrop-filter: blur(8px);
-                    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-                    font-size: 13.5px;
-                    width: 280px;
-                    min-height: 50px;
-                    text-align: center;
-                    display: flex;
-                    align-items: center;
-                    position: relative;
-                    overflow: hidden;
-                    pointer-events: auto;
-                    opacity: 0;
-                    transform: translateY(-20px);
-                    transition: opacity 0.3s ease, transform 0.3s ease;
-                }
-                .notification.show {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-                .notification-icon {
-                    margin-right: 10px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-                .notification-progress {
-                    position: absolute;
-                    bottom: 0;
-                    left: 0;
-                    height: 3px;
-                    width: 100%;
-                    background: #f0f0f0;
-                    opacity: 0.8;
-                }
-                @keyframes progress-animation {
-                    from { width: 100%; }
-                    to { width: 0%; }
-                }
-                .notification-progress.animate {
-                    animation: progress-animation linear forwards;
-                }
-                .notification.success .notification-icon {
-                    color: #4caf50;
-                }
-                .notification.error .notification-icon {
-                    color: #f44336;
-                }
-                .notification.info .notification-icon {
-                    color: #2196f3;
-                }
-                .notification.warning .notification-icon {
-                    color: #ff9800;
-                }
-            `;
-
-            const style = document.createElement('style');
-            style.id = styleId;
-            style.textContent = css;
-            document.head.appendChild(style);
-        }
-
-        createContainer() {
-            const container = document.createElement('div');
-            container.className = 'notification-container';
-            return container;
-        }
-
-        createIcon(type) {
-            const iconWrapper = document.createElement('div');
-            iconWrapper.className = 'notification-icon';
-            
-            let iconSvg = '';
-            
-            switch(type) {
-                case 'success':
-                    iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
-                    break;
-                case 'error':
-                    iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
-                    break;
-                case 'warning':
-                    iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
-                    break;
-                case 'info':
-                default:
-                    iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
-            }
-            
-            iconWrapper.innerHTML = iconSvg;
-            return iconWrapper;
-        }
-
-        show(message, options = {}) {
-            const { duration = 5000, type = 'info' } = options;
-            
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            
-            const icon = this.createIcon(type);
-            notification.appendChild(icon);
-            
-            const textSpan = document.createElement('span');
-            textSpan.textContent = message;
-            notification.appendChild(textSpan);
-            
-            const progressBar = document.createElement('div');
-            progressBar.className = 'notification-progress';
-            notification.appendChild(progressBar);
-            
-            this.notificationContainer.appendChild(notification);
-            
-            notification.offsetHeight;
-            notification.classList.add('show');
-            
-            progressBar.classList.add('animate');
-            progressBar.style.animationDuration = `${duration}ms`;
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        this.notificationContainer.removeChild(notification);
-                    }
-                }, 300);
-            }, duration);
-            
-            return notification;
-        }
-        
-        success(message, duration = 5000) {
-            return this.show(message, { type: 'success', duration });
-        }
-        
-        error(message, duration = 5000) {
-            return this.show(message, { type: 'error', duration });
-        }
-        
-        info(message, duration = 5000) {
-            return this.show(message, { type: 'info', duration });
-        }
-        
-        warning(message, duration = 5000) {
-            return this.show(message, { type: 'warning', duration });
-        }
-    }
-
-    function removeHtmlTags(htmlString) {
-        const div = document.createElement('div');
-        div.innerHTML = htmlString || '';
-        return div.textContent || div.innerText || '';
-    }
-
-    function transformJson(jsonOriginal) {
-        if (!jsonOriginal?.task?.questions) {
-            throw new Error("Estrutura de dados inválida para transformação.");
-        }
-
-        const novoJson = {
-            accessed_on: jsonOriginal.accessed_on,
-            executed_on: jsonOriginal.executed_on,
-            answers: {}
-        };
-
-        for (const questionId in jsonOriginal.answers) {
-            const questionData = jsonOriginal.answers[questionId];
-            const taskQuestion = jsonOriginal.task.questions.find(q => q.id === parseInt(questionId));
-
-            if (!taskQuestion) continue;
-
-            const answerPayload = {
-                question_id: questionData.question_id,
-                question_type: taskQuestion.type,
-                answer: null
-            };
-
-            try {
-                switch (taskQuestion.type) {
-                    case "order-sentences":
-                        if (taskQuestion.options?.sentences?.length) {
-                            answerPayload.answer = taskQuestion.options.sentences.map(sentence => sentence.value);
-                        }
-                        break;
-                    case "fill-words":
-                        if (taskQuestion.options?.phrase?.length) {
-                            answerPayload.answer = taskQuestion.options.phrase
-                                .map(item => item.value)
-                                .filter((_, index) => index % 2 !== 0);
-                        }
-                        break;
-                    case "text_ai":
-                        answerPayload.answer = { "0": removeHtmlTags(taskQuestion.comment || '') };
-                        break;
-                    case "fill-letters":
-                        if (taskQuestion.options?.answer !== undefined) {
-                            answerPayload.answer = taskQuestion.options.answer;
-                        }
-                        break;
-                    case "cloud":
-                        if (taskQuestion.options?.ids?.length) {
-                            answerPayload.answer = taskQuestion.options.ids;
-                        }
-                        break;
-                    default:
-                        if (taskQuestion.options && typeof taskQuestion.options === 'object') {
-                            answerPayload.answer = Object.fromEntries(
-                                Object.keys(taskQuestion.options).map(optionId => {
-                                    const optionData = taskQuestion.options[optionId];
-                                    const answerValue = optionData?.answer !== undefined ? optionData.answer : false;
-                                    return [optionId, answerValue];
-                                })
-                            );
-                        }
-                        break;
-                }
-                novoJson.answers[questionId] = answerPayload;
-            } catch (err) {
-                notifications.error(`Erro processando questão ${questionId}.`, 5000);
-            }
-        }
-        return novoJson;
-    }
-
-    async function pegarRespostasCorretas(taskId, answerId, headers) {
-        const url = `https://edusp-api.ip.tv/tms/task/${taskId}/answer/${answerId}?with_task=true&with_genre=true&with_questions=true&with_assessed_skills=true`;
-        
-        const response = await fetch(url, { method: "GET", headers });
-        if (!response.ok) {
-            throw new Error(`Erro ${response.status} ao buscar respostas.`);
-        }
-        return await response.json();
-    }
-
-    async function enviarRespostasCorrigidas(respostasAnteriores, taskId, answerId, headers) {
-        const url = `https://edusp-api.ip.tv/tms/task/${taskId}/answer/${answerId}`;
-        
-        try {
-            const novasRespostasPayload = transformJson(respostasAnteriores);
-
-            const response = await fetch(url, {
-                method: "PUT",
-                headers,
-                body: JSON.stringify(novasRespostasPayload)
-            });
-
-            if (!response.ok) {
-                throw new Error(`Erro ${response.status} ao enviar respostas.`);
-            }
-
-            notifications.success("Tarefa corrigida com sucesso!", 6000);
-        } catch (error) {}
-    }
-
-    async function loadCss(url) {
-        return new Promise((resolve, reject) => {
-            if (document.querySelector(`link[href="${url}"]`)) {
-                resolve();
-                return;
-            }
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.type = 'text/css';
-            link.href = url;
-            link.onload = resolve;
-            link.onerror = () => reject(new Error(`Falha ao carregar ${url}`));
-            document.head.appendChild(link);
-        });
-    }
-
-    let capturedLoginData = null;
-    const originalFetch = window.fetch;
-    const notifications = new NotificationSystem();
-
-    function enableSecurityMeasures() {
-        document.body.style.userSelect = 'none';
-        document.body.style.webkitUserSelect = 'none';
-        document.body.style.msUserSelect = 'none';
-        document.body.style.mozUserSelect = 'none';
-        
-        document.addEventListener('dragstart', (e) => {
-            e.preventDefault();
-            return false;
-        });
-        
-        const styleElement = document.createElement('style');
-        styleElement.textContent = `
-            img, svg, canvas, video {
-                pointer-events: none !important;
-                -webkit-user-drag: none !important;
-            }
-        `;
-        document.head.appendChild(styleElement);
-    }
-
-    try {
-        await Promise.all([
-            loadCss('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap'),
-        ]);
-        notifications.success(`TarefasResolver iniciado com sucesso!`, 3000);
-        notifications.info("Aguardando o login no Sala do Futuro...", 6000);
-        enableSecurityMeasures();
-    } catch (error) {
-        return;
-    }
-
-    window.fetch = async function(input, init) {
-        const url = typeof input === 'string' ? input : input.url;
-        const method = init?.method || 'GET';
-
-        if (url === 'https://edusp-api.ip.tv/registration/edusp/token' && !capturedLoginData) {
-            try {
-                const response = await originalFetch.apply(this, arguments);
-                const clonedResponse = response.clone();
-                const data = await clonedResponse.json();
-
-                if (data?.auth_token) {
-                    capturedLoginData = data;
-                    setTimeout(() => {
-                        notifications.success(`Login bem-sucedido! Divirta-se e faça as tarefas.`, 3500);
-                    }, 250);
-                }
-                return response;
-            } catch (error) {
-                notifications.error("Erro ao capturar token.", 5000);
-                return originalFetch.apply(this, arguments);
-            }
-        }
-
-        const response = await originalFetch.apply(this, arguments);
-
-        const answerSubmitRegex = /^https:\/\/edusp-api\.ip\.tv\/tms\/task\/\d+\/answer$/;
-        if (answerSubmitRegex.test(url) && init?.method === 'POST') {
-            if (!capturedLoginData?.auth_token) {
-                return response;
-            }
-
-            try {
-                const clonedResponse = response.clone();
-                const submittedData = await clonedResponse.json();
-
-                if (submittedData?.status !== "draft" && submittedData?.id && submittedData?.task_id) {
-                    notifications.info("Envio detectado! Iniciando correção...", 4000);
-
-                    const headers = {
-                        "x-api-realm": "edusp",
-                        "x-api-platform": "webclient",
-                        "x-api-key": capturedLoginData.auth_token,
-                        "content-type": "application/json"
-                    };
-
-                    setTimeout(async () => {
-                        try {
-                            const respostas = await pegarRespostasCorretas(submittedData.task_id, submittedData.id, headers);
-                            await enviarRespostasCorrigidas(respostas, submittedData.task_id, submittedData.id, headers);
-                        } catch (error) {
-                            notifications.error("Erro na correção automática.", 5000);
-                        }
-                    }, 500);
-                }
-            } catch (err) {
-                notifications.error("Erro ao processar envio.", 5000);
-            }
-        }
-
-        return response;
     };
+    const STATE = { 
+        logMessages: [], 
+        lastAnswer: null, 
+        isCycleRunning: false, 
+        ui: {},
+        instagramVerified: false // Estado para verificar se o usuário seguiu no Instagram
+    };
+
+    const logMessage = (level, ...args) => { const ts = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}); STATE.logMessages.push({ts,level,message:args.join(' ')}); const consoleFunc = console[level.toLowerCase()] || console.log; consoleFunc(`[HCK ${ts}]`, ...args); };
+    const withTimeout = (promise, ms) => Promise.race([promise, new Promise((_, rj) => setTimeout(() => rj(new Error(`Timeout ${ms}ms`)), ms))]);
+    function sanitizeText(text) { if (typeof text !== 'string') return ''; return text.replace(/\n\s*\n/g, '\n').replace(/ {2,}/g, ' ').trim(); }
+
+    function getCleanContentFromNode(node) {
+        if (!node) return '';
+        if (node.nodeType === Node.TEXT_NODE) return node.nodeValue;
+        if (node.nodeType !== Node.ELEMENT_NODE) return '';
+        if ((node.offsetParent === null && node.style.display !== 'flex') || node.style.display === 'none') return '';
+        const tagName = node.tagName.toUpperCase();
+        if (tagName === 'IMG') {
+            try {
+                const src = node.src || node.dataset.src;
+                if (!src) return '';
+                const absUrl = new URL(src, window.location.href).toString();
+                if (CONFIG.IMAGE_FILTERS.verify(absUrl)) return ` [IMAGEM]: ${absUrl} `;
+            } catch (e) {}
+            return '';
+        }
+        if (node.matches('mjx-container, .MathJax, .katex, math')) {
+            let latexSource = node.getAttribute('aria-label') || node.dataset.latex || node.querySelector('annotation[encoding*="tex"]')?.textContent || '';
+            if (latexSource.trim()) return ` $${latexSource.trim()}$ `;
+        }
+        let innerContent = '';
+        if (node.hasChildNodes()) {
+            for (const child of node.childNodes) { innerContent += getCleanContentFromNode(child); }
+        }
+        if (['P', 'DIV', 'H1', 'H2', 'H3', 'LI', 'BLOCKQUOTE', 'BR', 'TR'].includes(tagName)) { return innerContent + '\n'; }
+        return innerContent;
+    }
+
+    function extractQuestionTextFromPage() {
+        let questionCard = null;
+        const selectors = 'div.MuiPaper-root, article[class*="question"], section[class*="assessment"], div[class*="questao"]';
+        const allCards = document.querySelectorAll(selectors);
+        for (const card of allCards) {
+            if (card.closest('#' + HCK_BOOKMARKLET_ID)) continue;
+            if (card.querySelector('div[role="radiogroup"], ul[class*="option"], ol[class*="choice"]')) {
+                questionCard = card;
+                break;
+            }
+        }
+        if (!questionCard) { questionCard = document.body; }
+        let enunciado = '';
+        const enunciadoContainer = questionCard.querySelector('.ql-editor, div[class*="enunciado"], .question-statement, .texto-base');
+        if (enunciadoContainer && !enunciadoContainer.closest('div[role="radiogroup"]')) {
+            enunciado = getCleanContentFromNode(enunciadoContainer);
+        } else {
+            let tempEnunciado = '';
+            for (const child of questionCard.childNodes) {
+                if (child.nodeType === Node.ELEMENT_NODE && (child.matches('div[role="radiogroup"], ul[class*="option"], ol[class*="choice"]') || child.querySelector('div[role="radiogroup"]'))) break;
+                tempEnunciado += getCleanContentFromNode(child);
+            }
+            enunciado = tempEnunciado;
+        }
+        enunciado = sanitizeText(enunciado);
+        const alternativasTextos = [];
+        const radioGroup = questionCard.querySelector('div[role="radiogroup"], ul[class*="option"], ol[class*="choice"]');
+        if (radioGroup) {
+            const alternativeItems = Array.from(radioGroup.children).filter(el => el.matches('div, label, li'));
+            alternativeItems.forEach((item) => {
+                if (alternativasTextos.length >= 5) return;
+                const letter = String.fromCharCode(65 + alternativasTextos.length);
+                let content = getCleanContentFromNode(item).trim();
+                content = content.replace(/^[A-Ea-e][\)\.])\s*/, '').trim();
+                if (content) { alternativasTextos.push(`${letter}) ${sanitizeText(content)}`); }
+            });
+        }
+        if (enunciado.trim().length < 5 && alternativasTextos.every(a => a.length < 10)) { return "Falha ao extrair a questão. Conteúdo insuficiente."; }
+        let formattedOutput = "--- Enunciado e Contexto ---\n" + (enunciado || "(Nenhum enunciado detectado)");
+        if (alternativasTextos.length > 0) {
+            formattedOutput += "\n\n--- Alternativas ---\n" + alternativasTextos.join('\n');
+        } else {
+            formattedOutput += "\n\n(Nenhuma alternativa detectada)";
+        }
+        return formattedOutput.replace(/\n{3,}/g, '\n\n').trim();
+    }
+    
+    async function queryVercelApi(queryText) {
+        const payload = { messages: [{ role: "user", content: queryText }] };
+        const res = await fetch(CONFIG.MY_VERCEL_API_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.message || `HTTP ${res.status}`);
+        if (data.response) return data;
+        throw new Error("Resposta da API inválida.");
+    }
+    
+    function formatResponse(answer) { if(typeof answer!=='string')return null; const txt=answer.trim(); if(/^[A-E]$/i.test(txt))return txt.toUpperCase(); const match=txt.match(/\b([A-E])\b/i); return match?match[1].toUpperCase():null; }
+
+    const PULSE_CLASS = 'hck-radio-pulse-visual';
+    function applyPulseToAlternative(letter) { document.querySelectorAll('.'+PULSE_CLASS).forEach(el=>el.classList.remove(PULSE_CLASS)); if(!letter || !/^[A-E]$/i.test(letter)) return; const index = letter.toUpperCase().charCodeAt(0) - 65; const alts = document.querySelectorAll('div[role="radiogroup"] > label, div[role="radiogroup"] > div, ul[class*="option"] > li, ol[class*="choice"] > li'); if(alts[index]){ const target=alts[index].querySelector('.MuiRadio-root, input[type=radio]') || alts[index]; target.classList.add(PULSE_CLASS); } }
+    
+    async function doFullCycle() {
+        if (!STATE.instagramVerified) {
+            showInstagramVerification();
+            return;
+        }
+        
+        if (STATE.isCycleRunning) return;
+        STATE.isCycleRunning = true;
+        STATE.lastAnswer = null;
+        applyPulseToAlternative(null);
+        STATE.ui.helpers.showResponse({ answer: "Processando Questão...", detail: `Consultando especialistas...`, type: 'info' });
+        try {
+            let questionText = extractQuestionTextFromPage();
+            if (questionText.startsWith("Falha")) throw new Error(questionText);
+            
+            STATE.ui.elements.input.value = questionText;
+            STATE.ui.elements.input.scrollTop = 0;
+            
+            const apiResult = await withTimeout(queryVercelApi(questionText), CONFIG.API_TIMEOUT);
+            const formattedAnswer = formatResponse(apiResult.response);
+            
+            let sourceIcon = '💾';
+            if (apiResult.source === 'live_ai') sourceIcon = '⚡️';
+            
+            let detailString = `Respondido por: ${apiResult.model || 'IA'}`;
+            if (apiResult.source === 'database_cache') {
+                const modelOrigin = apiResult.details?.modelOrigin || 'IA';
+                detailString = `Do cache (por ${modelOrigin})`;
+            }
+
+            if (formattedAnswer) {
+                STATE.lastAnswer = formattedAnswer;
+                STATE.ui.helpers.showResponse({ answer: `${sourceIcon} Resposta: ${formattedAnswer}`, detail: detailString, type: 'success' });
+            } else {
+                throw new Error("IA não retornou A-E.");
+            }
+        } catch (error) {
+            logMessage('ERROR', "Falha no ciclo:", error);
+            STATE.ui.helpers.showResponse({ answer: "Erro no Ciclo", detail: error.message.substring(0, 50), type: 'error' });
+        } finally {
+            STATE.isCycleRunning = false;
+        }
+    }
+
+    function showLastAnswer() { 
+        if (!STATE.instagramVerified) {
+            showInstagramVerification();
+            return;
+        }
+        
+        if(STATE.isCycleRunning){ 
+            STATE.ui.helpers.showResponse({answer:"Aguarde", detail:"Processamento em curso...", type:'warn'}); 
+            return; 
+        } 
+        if(STATE.lastAnswer){ 
+            applyPulseToAlternative(STATE.lastAnswer); 
+            STATE.ui.helpers.showResponse({answer:`Marcando: ${STATE.lastAnswer}`, detail: "Alternativa destacada.", type:'success'}); 
+            STATE.lastAnswer = null; 
+        } else { 
+            STATE.ui.helpers.showResponse({answer:"Nada a mostrar", detail:"Execute o ciclo (2) primeiro.", type:'warn'}); 
+        } 
+    }
+    
+    function killSwitch() { document.removeEventListener('keydown', handleShortcuts, true); document.getElementById(HCK_BOOKMARKLET_ID)?.remove(); document.getElementById('hck-pulse-styles')?.remove(); document.getElementById('hck-notifications-container')?.remove(); document.getElementById('hck-instagram-verification')?.remove(); }
+    
+    function handleShortcuts(event) { if(event.target.isContentEditable || ['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName)) return; if(event.repeat) return; switch(event.key){ case '1': event.preventDefault(); STATE.ui.helpers.toggleMenu(); break; case '2': event.preventDefault(); doFullCycle(); break; case '3': event.preventDefault(); showLastAnswer(); break; case '5': event.preventDefault(); killSwitch(); break; } }
+
+    // Função para mostrar a tela de verificação do Instagram
+    function showInstagramVerification() {
+        // Remover qualquer verificação anterior
+        const existingVerification = document.getElementById('hck-instagram-verification');
+        if (existingVerification) existingVerification.remove();
+        
+        const C = { font: "'Fira Code', 'Source Code Pro', monospace", bg: '#1A1A1A', bg2: '#252525', text: '#E0E0E0', text2: '#888888', accent: '#00FF41', success: '#00FF41', error: '#FF4181', warn: '#FFDB41', pulse: '#F50057', border: '#333333', notifBg: 'rgba(26, 26, 26, 0.95)', glow: '0 0 8px #00FF4144' };
+        
+        const verificationContainer = document.createElement('div');
+        verificationContainer.id = 'hck-instagram-verification';
+        verificationContainer.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2147483647;
+            font-family: ${C.font};
+        `;
+        
+        const verificationBox = document.createElement('div');
+        verificationBox.style.cssText = `
+            background: ${C.bg};
+            width: 400px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: ${C.glow};
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border: 1px solid ${C.border};
+        `;
+        
+        const titleBar = document.createElement('div');
+        titleBar.style.cssText = `
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid ${C.border};
+        `;
+        
+        const title = document.createElement('div');
+        title.innerHTML = `HCK.sh <span style="animation:blink 1s step-end infinite; color:${C.accent};">_</span>`;
+        title.style.cssText = `font-weight:600; font-size:18px; color:${C.accent}; text-shadow: ${C.glow};`;
+        
+        const closeBtn = document.createElement('div');
+        closeBtn.textContent = '[X]';
+        closeBtn.style.cssText = `color:${C.text2}; font-size:16px; cursor:pointer;`;
+        closeBtn.onclick = killSwitch;
+        
+        titleBar.append(title, closeBtn);
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.style.cssText = `color:${C.text}; font-size:14px; line-height:1.5;`;
+        contentDiv.innerHTML = `
+            <p>Para utilizar este hack, você precisa seguir o desenvolvedor no Instagram:</p>
+            <p style="text-align:center; font-size:18px; margin:15px 0; color:${C.accent};">@${INSTAGRAM_USERNAME}</p>
+            <p>Após seguir, clique no botão abaixo para confirmar e continuar.</p>
+        `;
+        
+        const creditsDiv = document.createElement('div');
+        creditsDiv.style.cssText = `color:${C.text2}; font-size:12px; text-align:center; margin-top:10px;`;
+        creditsDiv.innerHTML = `Desenvolvido por: <span style="color:${C.accent};">${DEVELOPER}</span>`;
+        
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = `display:flex; justify-content:center; gap:10px; margin-top:10px;`;
+        
+        const confirmButton = document.createElement('button');
+        confirmButton.textContent = 'Já segui, continuar';
+        confirmButton.style.cssText = `
+            background: ${C.accent};
+            color: #000;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            transition: all 0.2s;
+        `;
+        confirmButton.onmouseover = () => { confirmButton.style.opacity = '0.9'; };
+        confirmButton.onmouseout = () => { confirmButton.style.opacity = '1'; };
+        confirmButton.onclick = () => {
+            STATE.instagramVerified = true;
+            verificationContainer.remove();
+            STATE.ui.helpers.showResponse({answer:"Verificação concluída", detail:`Obrigado por seguir @${INSTAGRAM_USERNAME}`, type:'success'});
+        };
+        
+        const instagramButton = document.createElement('button');
+        instagramButton.textContent = 'Abrir Instagram';
+        instagramButton.style.cssText = `
+            background: #E1306C;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            transition: all 0.2s;
+        `;
+        instagramButton.onmouseover = () => { instagramButton.style.opacity = '0.9'; };
+        instagramButton.onmouseout = () => { instagramButton.style.opacity = '1'; };
+        instagramButton.onclick = () => {
+            window.open(`https://www.instagram.com/${INSTAGRAM_USERNAME}/`, '_blank');
+        };
+        
+        buttonContainer.append(instagramButton, confirmButton);
+        verificationBox.append(titleBar, contentDiv, buttonContainer, creditsDiv);
+        verificationContainer.appendChild(verificationBox);
+        document.body.appendChild(verificationContainer);
+    }
+
+    function setupUI() {
+        const C = { font: "'Fira Code', 'Source Code Pro', monospace", bg: '#1A1A1A', bg2: '#252525', text: '#E0E0E0', text2: '#888888', accent: '#00FF41', success: '#00FF41', error: '#FF4181', warn: '#FFDB41', pulse: '#F50057', border: '#333333', notifBg: 'rgba(26, 26, 26, 0.8)', glow: '0 0 8px #00FF4144' };
+        const blinkAnimation = `@keyframes blink { 50% { opacity: 0; } }`;
+        const pulseAnimation = `@keyframes hck-pulse-strong-visual{0%{box-shadow:0 0 0 0 ${C.pulse}b3}70%{box-shadow:0 0 0 16px ${C.pulse}00}100%{box-shadow:0 0 0 0 ${C.pulse}00}}`;
+        const styleSheet = document.createElement("style"); styleSheet.id = 'hck-pulse-styles'; styleSheet.innerText = `${blinkAnimation} ${pulseAnimation} .${PULSE_CLASS}{border-radius:50%!important; animation:hck-pulse-strong-visual 1.5s infinite cubic-bezier(.66,0,0,1); z-index:9999;}`; document.head.appendChild(styleSheet);
+        const mainContainer = document.createElement('div'); mainContainer.id = HCK_BOOKMARKLET_ID; mainContainer.style.cssText = `position:fixed; bottom:12px; right:12px; z-index:2147483646; font-family:${C.font};`;
+        const menuPanel = document.createElement('div'); menuPanel.style.cssText = `background:${C.bg}; width:260px; padding:10px; border-radius:8px; box-shadow:${C.glow}; display:none; flex-direction:column; gap:8px; border:1px solid ${C.border}; transition: opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1), transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); opacity:0; transform: translateY(10px) scale(0.95); pointer-events: none;`;
+        const titleBar = document.createElement('div'); titleBar.style.cssText = `display:flex; justify-content:space-between; align-items:center; padding-bottom:6px; margin-bottom: 4px; border-bottom:1px solid ${C.border};`;
+        const title = document.createElement('div'); title.innerHTML = `HCK.sh <span style="animation:blink 1s step-end infinite; color:${C.accent};">_</span>`;
+        title.style.cssText = `font-weight:600; font-size:16px; color:${C.accent}; text-shadow: ${C.glow};`;
+        const closeBtn = document.createElement('div'); closeBtn.textContent = '[X]'; closeBtn.style.cssText = `color:${C.text2}; font-size:14px; cursor:pointer;`;
+        titleBar.append(title, closeBtn);
+        const inputArea = document.createElement('textarea'); inputArea.placeholder = 'Extracted content will appear here...'; inputArea.rows = 6; inputArea.readOnly = true; inputArea.style.cssText = `width:100%; box-sizing:border-box; resize:vertical; background:${C.bg2}; color:${C.text2}; border:1px solid ${C.border}; border-radius:4px; padding:8px; font-size:11px; font-family:inherit;`;
+        const shortcutsHelp = document.createElement('div'); shortcutsHelp.innerHTML = `<div style="display:grid; grid-template-columns:auto 1fr; gap:4px 10px; font-size:12px; color:${C.text2};"><b style="color:${C.accent};">1:</b><span>Toggle Menu</span><b style="color:${C.accent};">2:</b><span>Execute</span><b style="color:${C.accent};">3:</b><span>Show Answer</span><b style="color:${C.accent};">5:</b><span>Kill Process</span></div>`;
+        
+        // Adicionar créditos ao desenvolvedor
+        const creditsDiv = document.createElement('div');
+        creditsDiv.style.cssText = `color:${C.text2}; font-size:11px; text-align:center; margin-top:5px; border-top:1px solid ${C.border}; padding-top:5px;`;
+        creditsDiv.innerHTML = `Desenvolvido por: <span style="color:${C.accent};">${DEVELOPER}</span>`;
+        
+        menuPanel.append(titleBar, inputArea, shortcutsHelp, creditsDiv); mainContainer.appendChild(menuPanel); document.body.appendChild(mainContainer);
+        const notificationContainer = document.createElement('div'); notificationContainer.id = 'hck-notifications-container'; notificationContainer.style.cssText = `position:fixed; top:20px; right:20px; z-index:2147483647; display:flex; flex-direction:column; align-items:flex-end; gap:10px;`; document.body.appendChild(notificationContainer);
+        const toggleMenu = (forceShow) => { const isHidden = menuPanel.style.opacity === '0'; const show = forceShow === undefined ? isHidden : forceShow; if (show) { menuPanel.style.display = 'flex'; requestAnimationFrame(() => { menuPanel.style.opacity = '1'; menuPanel.style.transform = 'translateY(0) scale(1)'; menuPanel.style.pointerEvents = 'auto'; }); } else { menuPanel.style.opacity = '0'; menuPanel.style.transform = 'translateY(10px) scale(0.95)'; menuPanel.style.pointerEvents = 'none'; setTimeout(() => { if(menuPanel.style.opacity === '0') menuPanel.style.display = 'none'; }, 300); } };
+        closeBtn.onclick = () => toggleMenu(false);
+        const showResponse = (res, duration) => { const { answer="Info", detail="", type='info' } = res || {}; let color = C.accent; if (type==='success'){ color=C.success; } else if (type==='error'){ color=C.error; } else if (type==='warn'){ color=C.warn; } const notif = document.createElement('div'); notif.style.cssText = `background-color:${C.notifBg}; backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); color:${C.text}; padding: 8px 12px; border-radius:6px; box-shadow:${C.glow}; display:flex; align-items:center; gap:10px; max-width:300px; opacity:0; transform:translateX(20px) scale(0.95); transition:all .3s cubic-bezier(0.25, 1, 0.5, 1); border:1px solid ${C.border}; border-left: 3px solid ${color}; cursor:pointer; font-size: 13px;`; notif.innerHTML = `<div><strong style="color:${color};">${answer}</strong> ${detail ? `<span style="font-size:0.9em; color:${C.text2}; display:block;">${detail.replace(/</g, "<")}</span>` : ''}</div>`; let hideTimeout; const hideNotif = () => { clearTimeout(hideTimeout); notif.style.opacity='0'; notif.style.transform='translateX(20px) scale(0.95)'; setTimeout(() => notif.remove(), 300); }; notif.onclick = hideNotif; notificationContainer.appendChild(notif); requestAnimationFrame(() => { notif.style.opacity='1'; notif.style.transform='translateX(0) scale(1)'; }); const timeoutDuration = duration || (type === 'error' || type === 'warn' ? CONFIG.NOTIFICATION_TIMEOUT_LONG : CONFIG.NOTIFICATION_TIMEOUT_SHORT); hideTimeout = setTimeout(hideNotif, timeoutDuration); };
+        return { elements: { input: inputArea }, helpers: { toggleMenu, showResponse } };
+    }
+
+    function init() {
+        logMessage('INFO',`----- HCK Shortcuts (v${SCRIPT_VERSION}) Activated -----`);
+        try {
+            STATE.ui = setupUI();
+            if(!STATE.ui) throw new Error("UI Initialization Failed.");
+            document.addEventListener('keydown', handleShortcuts, true);
+            
+            // Mostrar verificação do Instagram ao iniciar
+            showInstagramVerification();
+            
+        } catch(error) {
+            logMessage('ERROR','!!! CRITICAL INIT FAILURE !!!', error);
+            killSwitch();
+        }
+    }
+    init();
 })();
